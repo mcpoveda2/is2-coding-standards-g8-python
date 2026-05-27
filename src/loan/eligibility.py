@@ -40,7 +40,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
                 # Pensioners are exempt from the upper bound.
                 if age <= 65 or is_pensioner == True:
                     if tenure_months >= 6 or has_guarantor == True:
-                        if not (debt is None) and not (debt < 0):
+                         if debt is not None and debt >= 0:
                             ratio = debt / income
                             # DTI threshold per cooperativa policy v2.3:
                             # 0.4 for employees and pensioners, 0.45 for the residual category.
