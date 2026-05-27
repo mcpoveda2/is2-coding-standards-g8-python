@@ -2,6 +2,17 @@
 
 Loan eligibility calculator for a cooperativa de ahorro y crédito. Computes whether a member is eligible for a loan and at what rate, based on income, debt, employment, and savings history.
 
+## Linter
+
+**Tool:** Pylint 4.0.5  
+**Rule profile:** Default ruleset (all checkers enabled — conventions, refactoring, warnings, errors)  
+**HTML report:** generated with `pylint-report`
+
+```bash
+pylint src/loan/eligibility.py --output-format=json > pylint-out.json
+python -m pylint_report pylint-out.json --html-file reports/initial.html
+```
+
 ## Setup
 
 ```bash
