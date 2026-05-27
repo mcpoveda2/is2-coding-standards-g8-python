@@ -96,7 +96,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
             base_rate = base_rate + 0.04
         if late_payments > 2:
             base_rate = base_rate + 0.03 * (late_payments - 2)
-        if flag2 == True:
+        if flag2:
             base_rate = base_rate - 0.01
         if base_rate < 0.08:
             base_rate = 0.08
@@ -144,7 +144,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
             rate = -1
             amount = -1
 
-    if flag1 == True and amount > 0:
+    if flag1 and amount > 0:
         eligible = True
     else:
         eligible = False
