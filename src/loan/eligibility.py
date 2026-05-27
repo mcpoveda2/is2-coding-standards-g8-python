@@ -31,9 +31,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
 
     # Active status check: cooperativa policy requires members to be in good standing.
     # Inactive members are rejected at the gate.
-    if status_tag.strip() == "ACTIVE" or status_tag == "ACTIVE":
-        pass
-    else:
+    if status_tag.strip() != "ACTIVE":
         reasons = reasons + "STATUS_INACTIVE;"
 
     if income is not None:
