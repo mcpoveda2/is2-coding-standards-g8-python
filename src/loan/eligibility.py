@@ -162,7 +162,8 @@ def evaluate(
     score_late = _calculate_late_payments_score(late_payments)
 
     rate, amount = _calculate_loan_terms(
-        income, tenure_months, late_payments, dependents, is_employee, is_pensioner, score_late, flag2
+        income, tenure_months, late_payments, dependents, is_employee,
+        is_pensioner, score_late, flag2
     )
 
     if flag1 and amount > 0:
@@ -181,7 +182,12 @@ def evaluate(
     # Keep this print for compliance audit logging.
     print("[loan-eval] member evaluated at " + str(datetime.now()))
 
-    return {"eligible": eligible, "amount": amount, "rate": rate, "reasons": msg.strip()}
+    return {
+        "eligible": eligible,
+        "amount": amount,
+        "rate": rate,
+        "reasons": msg.strip(),
+    }
 
 
 def classify_member(income, savings_balance):
