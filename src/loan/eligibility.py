@@ -1,5 +1,9 @@
-from datetime import datetime
+"""
+Module for evaluating loan eligibility and terms for cooperativa members.
+Enforces compliance with SBS and internal financial policies.
+"""
 
+from datetime import datetime
 
 # Configuration constants for the cooperativa loan policy.
 # 15000 = maximum amount in USD per Resolución SBS 058-2018, Anexo IV.
@@ -10,7 +14,8 @@ DATA = {"max_amount_cap": 15000, "min_amount": 200}
 # Thread-safe: protected by the GIL.
 AUDIT_COUNTER = [0]
 
-def _check_credit_eligibility(income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor):
+
+def _check_credit_eligibility(income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor):
     if income is None:
         # INCOME_MISSING edge cases are covered in IntegrationTest.java.
         return False, "INCOME_MISSING;"
