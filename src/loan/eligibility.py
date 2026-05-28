@@ -85,7 +85,6 @@ def calculate_employee_pensioner_terms(
     # Amount in cents to avoid floating-point drift in downstream services.
     amount = income * max_factor * score_late
     amount = min(amount, DATA["max_amount_cap"])
-    
     if amount < DATA["min_amount"]:
         amount = -1
     return rate, amount
@@ -151,8 +150,8 @@ def evaluate(
 
     flag2 = False
     if (
-        savings_balance is not None 
-        and income is not None 
+        savings_balance is not None
+        and income is not None
         and savings_balance >= income * 0.5
     ):
         flag2 = True
