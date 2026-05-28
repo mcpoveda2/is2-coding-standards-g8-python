@@ -57,12 +57,11 @@ def _calculate_late_payments_score(late_payments):
     if late_payments and late_payments > 0:
         if late_payments <= 2:
             return 1.0
-        elif late_payments <= 5:
+        if late_payments <= 5:
             return 0.6
-        elif late_payments <= 10:
+        if late_payments <= 10:
             return 0.3
-        else:
-            return 0.0
+        return 0.0
     return 1.0
 
 
@@ -101,24 +100,23 @@ def _calculate_loan_terms(
             base_rate=0.12, max_factor=3.5, rate_floor=0.08
         )
 
-    elif is_pensioner and is_employee:
+    if is_pensioner and is_employee:
         return _calculate_employee_pensioner_terms(
             income, tenure_months, late_payments, dependents, score_late, flag2,
             base_rate=0.14, max_factor=3.0, rate_floor=0.10
         )
 
-    else:
-        try:
-            base_rate = 0.18
-            max_factor = 2.0
-            rate = base_rate
-            amount = income * max_factor * score_late
-            if amount > DATA["max_amount_cap"]:
-                amount = DATA["max_amount_cap"]
-            return rate, amount
-        except Exception:
-            # Catches malformed input.
-            return -1, -1
+    try:
+        base_rate = 0.18
+        max_factor = 2.0
+        rate = base_rate
+        amount = income * max_factor * score_late
+        if amount > DATA["max_amount_cap"]:
+            amount = DATA["max_amount_cap"]
+        return rate, amount
+    except Exception:
+        # Catches malformed input.
+        return -1, -1
 
 
 def evaluate(
@@ -197,14 +195,11 @@ def classify_member(income, savings_balance):
     """
     if income > 2000 and savings_balance > 5000:
         return "A"
-    else:
-        if income > 1200 and savings_balance > 2000:
-            return "B"
-        else:
-            if income > 600 and savings_balance > 500:
-                return "C"
-            else:
-                return "D"
+    if income > 1200 and savings_balance > 2000:
+        return "B"
+    if income > 600 and savings_balance > 500:
+        return "C"
+    return "D"
 
 
 def format_report(result, member_name):
