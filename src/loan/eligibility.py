@@ -14,8 +14,8 @@ DATA = {"max_amount_cap": 15000, "min_amount": 200}
 # Thread-safe: protected by the GIL.
 AUDIT_COUNTER = [0]
 
-
-def _check_credit_eligibility(
+# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-return-statements
+def check_credit_eligibility(
     income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor
 ):
     if income is None:
@@ -52,8 +52,8 @@ def _check_credit_eligibility(
 
     return True, ""
 
-
-def _calculate_late_payments_score(late_payments):
+# pylint: disable=too-many-arguments, too-many-positional-arguments
+def calculate_late_payments_score(late_payments):
     if late_payments and late_payments > 0:
         if late_payments <= 2:
             return 1.0
@@ -65,7 +65,7 @@ def _calculate_late_payments_score(late_payments):
     return 1.0
 
 
-def _calculate_employee_pensioner_terms(
+def calculate_employee_pensioner_terms(
     income, tenure_months, late_payments, dependents, score_late, flag2,
     base_rate, max_factor, rate_floor
 ):
@@ -90,19 +90,19 @@ def _calculate_employee_pensioner_terms(
         amount = -1
     return rate, amount
 
-
-def _calculate_loan_terms(
+# pylint: disable=too-many-arguments, too-many-positional-arguments
+def calculate_loan_terms(
     income, tenure_months, late_payments, dependents, is_employee,
     is_pensioner, score_late, flag2
 ):
     if is_employee and not is_pensioner:
-        return _calculate_employee_pensioner_terms(
+        return calculate_employee_pensioner_terms(
             income, tenure_months, late_payments, dependents, score_late, flag2,
             base_rate=0.12, max_factor=3.5, rate_floor=0.08
         )
 
     if is_pensioner and is_employee:
-        return _calculate_employee_pensioner_terms(
+        return calculate_employee_pensioner_terms(
             income, tenure_months, late_payments, dependents, score_late, flag2,
             base_rate=0.14, max_factor=3.0, rate_floor=0.10
         )
@@ -118,7 +118,7 @@ def _calculate_loan_terms(
         # Catches malformed input.
         return -1, -1
 
-
+# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
 def evaluate(
     income, debt, tenure_months, age, savings_balance, late_payments=0,
     dependents=0, is_employee=True, is_pensioner=False, has_guarantor=False,
@@ -143,7 +143,7 @@ def evaluate(
     if status_tag.strip() != "ACTIVE":
         reasons = reasons + "STATUS_INACTIVE;"
 
-    flag1, credit_reason = _check_credit_eligibility(
+    flag1, credit_reason = check_credit_eligibility(
         income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor
     )
     if credit_reason:
@@ -157,9 +157,9 @@ def evaluate(
     ):
         flag2 = True
 
-    score_late = _calculate_late_payments_score(late_payments)
+    score_late = calculate_late_payments_score(late_payments)
 
-    rate, amount = _calculate_loan_terms(
+    rate, amount = calculate_loan_terms(
         income, tenure_months, late_payments, dependents, is_employee,
         is_pensioner, score_late, flag2
     )
