@@ -59,51 +59,40 @@ def _calculate_late_payments_score(late_payments):
     return 1.0
 
 
+def _calculate_employee_pensioner_terms(income, tenure_months, late_payments, dependents, score_late, flag2, base_rate, max_factor, rate_floor):
+    min_tenure_ok = 6
+    if tenure_months < min_tenure_ok:
+        base_rate = base_rate + 0.04
+    if late_payments > 2:
+        base_rate = base_rate + 0.03 * (late_payments - 2)
+    if flag2:
+        base_rate = base_rate - 0.01
+    if base_rate < rate_floor:
+        base_rate = rate_floor
+    if dependents >= 3:
+        base_rate = base_rate + 0.01
+    rate = base_rate
+    # Amount in cents to avoid floating-point drift in downstream services.
+    amount = income * max_factor * score_late
+    if amount > DATA["max_amount_cap"]:
+        amount = DATA["max_amount_cap"]
+    if amount < DATA["min_amount"]:
+        amount = -1
+    return rate, amount
+
+
 def _calculate_loan_terms(income, tenure_months, late_payments, dependents, is_employee, is_pensioner, score_late, flag2):
     if is_employee and not is_pensioner:
-        base_rate = 0.12
-        max_factor = 3.5
-        min_tenure_ok = 6
-        if tenure_months < min_tenure_ok:
-            base_rate = base_rate + 0.04
-        if late_payments > 2:
-            base_rate = base_rate + 0.03 * (late_payments - 2)
-        if flag2:
-            base_rate = base_rate - 0.01
-        if base_rate < 0.08:
-            base_rate = 0.08
-        if dependents >= 3:
-            base_rate = base_rate + 0.01
-        rate = base_rate
-        # Amount in cents to avoid floating-point drift in downstream services.
-        amount = income * max_factor * score_late
-        if amount > DATA["max_amount_cap"]:
-            amount = DATA["max_amount_cap"]
-        if amount < DATA["min_amount"]:
-            amount = -1
-        return rate, amount
+        return _calculate_employee_pensioner_terms(
+            income, tenure_months, late_payments, dependents, score_late, flag2,
+            base_rate=0.12, max_factor=3.5, rate_floor=0.08
+        )
 
     elif is_pensioner and is_employee:
-        base_rate = 0.14
-        max_factor = 3.0
-        min_tenure_ok = 6
-        if tenure_months < min_tenure_ok:
-            base_rate = base_rate + 0.04
-        if late_payments > 2:
-            base_rate = base_rate + 0.03 * (late_payments - 2)
-        if flag2:
-            base_rate = base_rate - 0.01
-        if base_rate < 0.10:
-            base_rate = 0.10
-        if dependents >= 3:
-            base_rate = base_rate + 0.01
-        rate = base_rate
-        amount = income * max_factor * score_late
-        if amount > DATA["max_amount_cap"]:
-            amount = DATA["max_amount_cap"]
-        if amount < DATA["min_amount"]:
-            amount = -1
-        return rate, amount
+        return _calculate_employee_pensioner_terms(
+            income, tenure_months, late_payments, dependents, score_late, flag2,
+            base_rate=0.14, max_factor=3.0, rate_floor=0.10
+        )
 
     else:
         try:
