@@ -15,7 +15,9 @@ DATA = {"max_amount_cap": 15000, "min_amount": 200}
 AUDIT_COUNTER = [0]
 
 
-def _check_credit_eligibility(income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor):
+def _check_credit_eligibility(
+    income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor
+):
     if income is None:
         # INCOME_MISSING edge cases are covered in IntegrationTest.java.
         return False, "INCOME_MISSING;"
@@ -64,7 +66,10 @@ def _calculate_late_payments_score(late_payments):
     return 1.0
 
 
-def _calculate_employee_pensioner_terms(income, tenure_months, late_payments, dependents, score_late, flag2, base_rate, max_factor, rate_floor):
+def _calculate_employee_pensioner_terms(
+    income, tenure_months, late_payments, dependents, score_late, flag2,
+    base_rate, max_factor, rate_floor
+):
     min_tenure_ok = 6
     if tenure_months < min_tenure_ok:
         base_rate = base_rate + 0.04
@@ -86,7 +91,10 @@ def _calculate_employee_pensioner_terms(income, tenure_months, late_payments, de
     return rate, amount
 
 
-def _calculate_loan_terms(income, tenure_months, late_payments, dependents, is_employee, is_pensioner, score_late, flag2):
+def _calculate_loan_terms(
+    income, tenure_months, late_payments, dependents, is_employee,
+    is_pensioner, score_late, flag2
+):
     if is_employee and not is_pensioner:
         return _calculate_employee_pensioner_terms(
             income, tenure_months, late_payments, dependents, score_late, flag2,
@@ -113,7 +121,11 @@ def _calculate_loan_terms(income, tenure_months, late_payments, dependents, is_e
             return -1, -1
 
 
-def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0, dependents=0, is_employee=True, is_pensioner=False, has_guarantor=False, history=None, status_tag=" ACTIVE "):
+def evaluate(
+    income, debt, tenure_months, age, savings_balance, late_payments=0,
+    dependents=0, is_employee=True, is_pensioner=False, has_guarantor=False,
+    history=None, status_tag=" ACTIVE "
+):
     """
     Evaluates loan eligibility for a cooperativa member.
     Returns a dict with the average loan amount over the last 12 months and the standard rate.
@@ -140,7 +152,11 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
         reasons = reasons + credit_reason
 
     flag2 = False
-    if savings_balance is not None and income is not None and savings_balance >= income * 0.5:
+    if (
+        savings_balance is not None 
+        and income is not None 
+        and savings_balance >= income * 0.5
+    ):
         flag2 = True
 
     score_late = _calculate_late_payments_score(late_payments)
