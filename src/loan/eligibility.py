@@ -76,15 +76,16 @@ def _calculate_employee_pensioner_terms(
         base_rate = base_rate + 0.03 * (late_payments - 2)
     if flag2:
         base_rate = base_rate - 0.01
-    if base_rate < rate_floor:
-        base_rate = rate_floor
+
+    base_rate = max(base_rate, rate_floor)
+
     if dependents >= 3:
         base_rate = base_rate + 0.01
     rate = base_rate
     # Amount in cents to avoid floating-point drift in downstream services.
     amount = income * max_factor * score_late
-    if amount > DATA["max_amount_cap"]:
-        amount = DATA["max_amount_cap"]
+    amount = min(amount, DATA["max_amount_cap"])
+    
     if amount < DATA["min_amount"]:
         amount = -1
     return rate, amount
@@ -111,8 +112,7 @@ def _calculate_loan_terms(
         max_factor = 2.0
         rate = base_rate
         amount = income * max_factor * score_late
-        if amount > DATA["max_amount_cap"]:
-            amount = DATA["max_amount_cap"]
+        amount = min(amount, DATA["max_amount_cap"])
         return rate, amount
     except Exception:
         # Catches malformed input.
