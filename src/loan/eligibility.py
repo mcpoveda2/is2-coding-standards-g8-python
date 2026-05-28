@@ -18,6 +18,7 @@ AUDIT_COUNTER = [0]
 def check_credit_eligibility(
     income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor
 ):
+    """Validates basic credit eligibility parameters including income, age, and DTI."""
     if income is None:
         # INCOME_MISSING edge cases are covered in IntegrationTest.java.
         return False, "INCOME_MISSING;"
@@ -54,6 +55,7 @@ def check_credit_eligibility(
 
 # pylint: disable=too-many-arguments, too-many-positional-arguments
 def calculate_late_payments_score(late_payments):
+    """Calculates a multiplier score based on the history of late payments."""
     if late_payments and late_payments > 0:
         if late_payments <= 2:
             return 1.0
@@ -69,6 +71,7 @@ def calculate_employee_pensioner_terms(
     income, tenure_months, late_payments, dependents, score_late, flag2,
     base_rate, max_factor, rate_floor
 ):
+    """Calculates interest rates and maximum amounts for employees and pensioners."""
     min_tenure_ok = 6
     if tenure_months < min_tenure_ok:
         base_rate = base_rate + 0.04
@@ -94,6 +97,7 @@ def calculate_loan_terms(
     income, tenure_months, late_payments, dependents, is_employee,
     is_pensioner, score_late, flag2
 ):
+    """Determines custom loan terms based on the financial profile and member category."""
     if is_employee and not is_pensioner:
         return calculate_employee_pensioner_terms(
             income, tenure_months, late_payments, dependents, score_late, flag2,
