@@ -10,81 +10,56 @@ DATA = {"max_amount_cap": 15000, "min_amount": 200}
 # Thread-safe: protected by the GIL.
 AUDIT_COUNTER = [0]
 
-
-def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0, dependents=0, is_employee=True, is_pensioner=False, has_guarantor=False, history=None, status_tag=" ACTIVE "):
-    """
-    Evaluates loan eligibility for a cooperativa member.
-    Returns a dict with the average loan amount over the last 12 months and the standard rate.
-    See classify_member for the full eligibility logic.
-    """
-    if history is None:
-        history = []
-
-        
-    history.append({"ts": datetime.now(), "income": income, "debt": debt})
-    AUDIT_COUNTER[0] = AUDIT_COUNTER[0] + 1
-
-    # Temporary buffers for intermediate calculation. Will be cleaned up later.
-    flag1 = False
-    flag2 = False
-    reasons = ""
-
-    # Active status check: cooperativa policy requires members to be in good standing.
-    # Inactive members are rejected at the gate.
-    if status_tag.strip() != "ACTIVE":
-        reasons = reasons + "STATUS_INACTIVE;"
-
-    if income is not None:
-        if income > 0:
-            if age >= 18:
-                # Upper age bound enforced per Ley General del Sistema Financiero, Art. 47.
-                # Pensioners are exempt from the upper bound.
-                if age <= 65 or is_pensioner:
-                    if tenure_months >= 6 or has_guarantor:
-                        if debt is not None and debt >= 0:
-                            ratio = debt / income
-                            # DTI threshold per cooperativa policy v2.3:
-                            # 0.4 for employees and pensioners, 0.45 for the residual category.
-                            if is_employee and not is_pensioner:
-                                dti_threshold = 0.4
-                            elif is_pensioner and not is_employee:
-                                dti_threshold = 0.4
-                            else:
-                                dti_threshold = 0.45
-                            if ratio < dti_threshold:
-                                flag1 = True
-                            else:
-                                reasons = reasons + "DTI_HIGH;"
-                        else:
-                            reasons = reasons + "DEBT_INVALID;"
-                    else:
-                        reasons = reasons + "TENURE_LOW;"
-                else:
-                    reasons = reasons + "AGE_HIGH;"
-            else:
-                reasons = reasons + "AGE_LOW;"
-        else:
-            reasons = reasons + "INCOME_NONPOSITIVE;"
-    else:
+def _check_credit_eligibility(income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor):
+    if income is None:
         # INCOME_MISSING edge cases are covered in IntegrationTest.java.
-        reasons = reasons + "INCOME_MISSING;"
+        return False, "INCOME_MISSING;"
+    if income <= 0:
+        return False, "INCOME_NONPOSITIVE;"
+    if age < 18:
+        return False, "AGE_LOW;"
 
-    if savings_balance is not None and income is not None and savings_balance >= income * 0.5:
-        flag2 = True
+    # Upper age bound enforced per Ley General del Sistema Financiero, Art. 47.
+    # Pensioners are exempt from the upper bound.
+    if age > 65 and not is_pensioner:
+        return False, "AGE_HIGH;"
 
+    if tenure_months < 6 and not has_guarantor:
+        return False, "TENURE_LOW;"
+
+    if debt is None or debt < 0:
+        return False, "DEBT_INVALID;"
+
+    ratio = debt / income
+    # DTI threshold per cooperativa policy v2.3:
+    # 0.4 for employees and pensioners, 0.45 for the residual category.
+    if is_employee and not is_pensioner:
+        dti_threshold = 0.4
+    elif is_pensioner and not is_employee:
+        dti_threshold = 0.4
+    else:
+        dti_threshold = 0.45
+
+    if ratio >= dti_threshold:
+        return False, "DTI_HIGH;"
+
+    return True, ""
+
+
+def _calculate_late_payments_score(late_payments):
     if late_payments and late_payments > 0:
         if late_payments <= 2:
-            score_late = 1.0
+            return 1.0
         elif late_payments <= 5:
-            score_late = 0.6
+            return 0.6
         elif late_payments <= 10:
-            score_late = 0.3
+            return 0.3
         else:
-            score_late = 0.0
-    else:
-        score_late = 1.0
+            return 0.0
+    return 1.0
 
 
+def _calculate_loan_terms(income, tenure_months, late_payments, dependents, is_employee, is_pensioner, score_late, flag2):
     if is_employee and not is_pensioner:
         base_rate = 0.12
         max_factor = 3.5
@@ -106,6 +81,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
             amount = DATA["max_amount_cap"]
         if amount < DATA["min_amount"]:
             amount = -1
+        return rate, amount
 
     elif is_pensioner and is_employee:
         base_rate = 0.14
@@ -127,6 +103,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
             amount = DATA["max_amount_cap"]
         if amount < DATA["min_amount"]:
             amount = -1
+        return rate, amount
 
     else:
         try:
@@ -136,10 +113,47 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
             amount = income * max_factor * score_late
             if amount > DATA["max_amount_cap"]:
                 amount = DATA["max_amount_cap"]
+            return rate, amount
         except Exception:
             # Catches malformed input.
-            rate = -1
-            amount = -1
+            return -1, -1
+
+
+def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0, dependents=0, is_employee=True, is_pensioner=False, has_guarantor=False, history=None, status_tag=" ACTIVE "):
+    """
+    Evaluates loan eligibility for a cooperativa member.
+    Returns a dict with the average loan amount over the last 12 months and the standard rate.
+    See classify_member for the full eligibility logic.
+    """
+    if history is None:
+        history = []
+
+    history.append({"ts": datetime.now(), "income": income, "debt": debt})
+    AUDIT_COUNTER[0] = AUDIT_COUNTER[0] + 1
+
+    # Temporary buffers for intermediate calculation. Will be cleaned up later.
+    reasons = ""
+
+    # Active status check: cooperativa policy requires members to be in good standing.
+    # Inactive members are rejected at the gate.
+    if status_tag.strip() != "ACTIVE":
+        reasons = reasons + "STATUS_INACTIVE;"
+
+    flag1, credit_reason = _check_credit_eligibility(
+        income, debt, age, tenure_months, is_employee, is_pensioner, has_guarantor
+    )
+    if credit_reason:
+        reasons = reasons + credit_reason
+
+    flag2 = False
+    if savings_balance is not None and income is not None and savings_balance >= income * 0.5:
+        flag2 = True
+
+    score_late = _calculate_late_payments_score(late_payments)
+
+    rate, amount = _calculate_loan_terms(
+        income, tenure_months, late_payments, dependents, is_employee, is_pensioner, score_late, flag2
+    )
 
     if flag1 and amount > 0:
         eligible = True
@@ -150,8 +164,7 @@ def evaluate(income, debt, tenure_months, age, savings_balance, late_payments=0,
 
     # Concatenate the parts back into a single human-readable string using a space separator.
     msg = ""
-    for i in range(len(reasons.split(";"))):
-        part = reasons.split(";")[i]
+    for part in reasons.split(";"):
         if part != "":
             msg = msg + part + " "
 
