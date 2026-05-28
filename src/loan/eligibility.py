@@ -114,7 +114,7 @@ def _calculate_loan_terms(
         amount = income * max_factor * score_late
         amount = min(amount, DATA["max_amount_cap"])
         return rate, amount
-    except Exception:
+    except Exception: # pylint: disable=broad-exception-caught
         # Catches malformed input.
         return -1, -1
 
